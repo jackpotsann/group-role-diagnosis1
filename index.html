@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>グループ役割診断</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Bebas+Neue&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --card: #13131a;
+    --border: #2a2a3a;
+    --text: #f0f0f5;
+    --muted: #7070a0;
+    --accent-m: #4fc3f7;
+    --accent-f: #f48fb1;
+    --gold: #ffd54f;
+    --glow-m: rgba(79,195,247,0.15);
+    --glow-f: rgba(244,143,177,0.15);
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #app { position: relative; z-index: 1; }
+
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+
+  /* TOP */
+  #s-top {
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, #1a1a2e, transparent),
+                radial-gradient(ellipse 60% 40% at 20% 80%, #0d1b2a, transparent),
+                var(--bg);
+    text-align: center;
+    gap: 32px;
+  }
+
+  .logo-badge {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 16px;
+    border-radius: 100px;
+  }
+
+  .top-title {
+    font-weight: 900;
+    font-size: clamp(28px, 7vw, 52px);
+    line-height: 1.2;
+    background: linear-gradient(135deg, #fff 30%, var(--muted));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .top-title span.m { -webkit-text-fill-color: var(--accent-m); }
+  .top-title span.f { -webkit-text-fill-color: var(--accent-f); }
+
+  .top-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 360px;
+  }
+
+  .gender-row { display: flex; gap: 16px; }
+
+  .gender-btn {
+    flex: 1; padding: 20px 24px;
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 18px; font-weight: 700;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+
+  .gender-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .gender-btn.male::before { background: var(--glow-m); }
+  .gender-btn.female::before { background: var(--glow-f); }
+  .gender-btn.male:hover { border-color: var(--accent-m); color: var(--accent-m); }
+  .gender-btn.female:hover { border-color: var(--accent-f); color: var(--accent-f); }
+  .gender-btn:hover::before { opacity: 1; }
+  .gender-btn .emoji { font-size: 28px; display: block; margin-bottom: 8px; }
+  .gender-btn .label { font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+
+  /* QUIZ */
+  #s-quiz {
+    background: var(--bg);
+    gap: 24px;
+    max-width: 520px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .progress-bar {
+    width: 100%; height: 3px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.4s ease, background 0.3s;
+  }
+
+  .q-meta {
+    display: flex; justify-content: space-between;
+    align-items: center; width: 100%;
+    font-size: 12px; color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .q-num { font-family: 'Bebas Neue', sans-serif; font-size: 16px; }
+
+  .q-card {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px;
+    animation: fadeUp 0.35s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .q-emoji { font-size: 32px; margin-bottom: 16px; }
+  .q-text { font-size: 17px; font-weight: 700; line-height: 1.7; }
+
+  .choices { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+
+  .choice-btn {
+    width: 100%;
+    padding: 14px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1.6;
+  }
+
+  .choice-btn:hover { border-color: currentColor; background: rgba(255,255,255,0.04); transform: translateX(4px); }
+  .choice-btn.male-theme:hover { color: var(--accent-m); }
+  .choice-btn.female-theme:hover { color: var(--accent-f); }
+
+  /* ── RESULT ── */
+  #s-result {
+    background: var(--bg);
+    gap: 20px;
+    max-width: 520px;
+    margin: 0 auto;
+    width: 100%;
+    padding-top: 36px;
+    padding-bottom: 48px;
+  }
+
+  /* header */
+  .result-header { text-align: center; }
+
+  .result-badge {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .result-type {
+    font-size: clamp(24px, 6vw, 38px);
+    font-weight: 900;
+    line-height: 1.2;
+    animation: popIn 0.5s cubic-bezier(.34,1.56,.64,1) both;
+  }
+
+  @keyframes popIn {
+    from { opacity:0; transform: scale(0.7); }
+    to   { opacity:1; transform: scale(1); }
+  }
+
+  /* purity pill row */
+  .purity-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .purity-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1.5px solid currentColor;
+  }
+
+  .purity-bar-mini {
+    width: 60px; height: 4px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .purity-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 1s cubic-bezier(.4,0,.2,1) 0.3s;
+  }
+
+  /* main card */
+  .result-card {
+    width: 100%;
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .result-card-glow {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+
+  .result-card-inner { padding: 24px; position: relative; z-index: 1; }
+
+  .result-section { margin-bottom: 18px; }
+  .result-section:last-child { margin-bottom: 0; }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  .feature-text { font-size: 15px; line-height: 1.85; color: #d8d8ee; }
+
+  .hidden-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--muted);
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border-left: 3px solid var(--border);
+  }
+
+  /* quote block — speech bubble style */
+  .quote-bubble {
+    position: relative;
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.7;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .quote-bubble::before {
+    content: '\201C';
+    position: absolute;
+    top: -8px; left: 14px;
+    font-size: 36px;
+    font-family: Georgia, serif;
+    line-height: 1;
+    opacity: 0.6;
+  }
+
+  /* compat card */
+  .compat-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 14px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .compat-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .compat-info { flex: 1; }
+  .compat-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .compat-reason { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  /* donut chart */
+  .chart-section {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px 20px 16px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .chart-title {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .chart-body {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .donut-wrap {
+    position: relative;
+    width: 160px; height: 160px;
+    flex-shrink: 0;
+  }
+
+  #donut-canvas { display: block; }
+
+  .donut-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; pointer-events: none;
+  }
+
+  .donut-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    line-height: 1;
+  }
+
+  .donut-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .chart-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1;
+  }
+
+  .legend-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-pct {
+    margin-left: auto;
+    font-size: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.5px;
+  }
+
+  .legend-item.active { color: var(--text); font-weight: 700; }
+
+  /* bottom */
+  .share-hint { text-align: center; font-size: 12px; color: var(--muted); }
+
+  .result-btns { display: flex; gap: 12px; width: 100%; }
+
+  .retry-btn {
+    flex: 1; padding: 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .retry-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .share-btn {
+    flex: 2; padding: 16px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .share-btn:hover { opacity: 0.85; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+
+  .x-share-btn {
+    flex: 2; padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: #000;
+    color: #fff;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .x-share-btn:hover { background: #1a1a1a; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+
+  .copy-btn {
+    width: 100%; padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--text); color: var(--text); }
+
+  /* skills row */
+  .skills-row {
+    display: flex;
+    gap: 0;
+  }
+  .skill-block { flex: 1; }
+  .skill-divider {
+    width: 1px;
+    background: var(--border);
+    margin: 0 16px;
+    flex-shrink: 0;
+  }
+  .skill-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #d8d8ee;
+  }
+  .skill-weak { color: var(--muted); }
+
+  /* stat bars */
+  .stat-bars { display: flex; flex-direction: column; gap: 11px; margin-top: 4px; }
+  .stat-row { display: flex; align-items: center; gap: 10px; }
+  .stat-label { font-size: 11px; color: var(--muted); width: 72px; flex-shrink: 0; }
+  .stat-track {
+    flex: 1; height: 7px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .stat-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.9s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+  .stat-val { font-size: 11px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.5px; width: 20px; text-align: right; }
+
+  .psych-text {
+    font-size: 14px; line-height: 1.85; color: #d8d8ee;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border-left: 3px solid currentColor;
+  }
+
+  .crisis-text {
+    font-size: 14px; line-height: 1.85; color: #d8d8ee;
+  }
+
+  .grow-text {
+    font-size: 14px; line-height: 1.85; color: #d8d8ee;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 1px dashed rgba(255,255,255,0.1);
+  }
+
+  /* LOADING */
+  #s-loading {
+    background: var(--bg);
+    gap: 20px;
+    text-align: center;
+  }
+
+  .loading-dots {
+    display: flex; gap: 10px; justify-content: center; align-items: center;
+  }
+
+  .loading-dots span {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: blink 1s ease-in-out infinite;
+  }
+
+  .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1.2); }
+  }
+
+  .loading-text {
+    font-size: 16px; font-weight: 700; color: var(--muted);
+    letter-spacing: 2px;
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOP -->
+<div id="s-top" class="screen active">
+  <span class="logo-badge">GROUP ROLE DIAGNOSIS</span>
+  <h1 class="top-title">あなたは<br>グループの<br><span class="m">何</span><span class="f">者</span>？</h1>
+  <p class="top-sub">友達グループの中で、あなたが自然と担っている「役割」を診断します。全8問、正直に答えてください。</p>
+  <div class="gender-row">
+    <button class="gender-btn male" onclick="startQuiz('male')">
+      <span class="emoji">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="13" cy="19" r="8" stroke="#4fc3f7" stroke-width="2.5" fill="none"/>
+          <line x1="19" y1="13" x2="28" y2="4" stroke="#4fc3f7" stroke-width="2.5" stroke-linecap="round"/>
+          <polyline points="22,4 28,4 28,10" stroke="#4fc3f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </span>男子グループ
+      <div class="label">8つの役割から診断</div>
+    </button>
+    <button class="gender-btn female" onclick="startQuiz('female')">
+      <span class="emoji">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="13" r="8" stroke="#f48fb1" stroke-width="2.5" fill="none"/>
+          <line x1="16" y1="21" x2="16" y2="29" stroke="#f48fb1" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="11" y1="25" x2="21" y2="25" stroke="#f48fb1" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </span>女子グループ
+      <div class="label">8つの役割から診断</div>
+    </button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="s-quiz" class="screen">
+  <div class="q-meta">
+    <span class="q-num" id="q-num">Q 1 / 8</span>
+    <span id="q-gender-label"></span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div class="q-card" id="q-card">
+    <div class="q-emoji" id="q-emoji"></div>
+    <div class="q-text" id="q-text"></div>
+  </div>
+  <div class="choices" id="choices"></div>
+</div>
+
+<!-- RESULT -->
+<!-- LOADING -->
+<div id="s-loading" class="screen">
+  <div class="loading-dots">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="loading-text">診断中…</div>
+</div>
+
+<div id="s-result" class="screen">
+  <!-- header -->
+  <div class="result-header">
+    <div class="result-badge">YOUR ROLE</div>
+    <div class="result-type" id="r-type"></div>
+    <div class="purity-row">
+      <div class="purity-pill" id="r-purity"></div>
+      <div class="purity-bar-mini"><div class="purity-bar-fill" id="r-purity-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- main info card -->
+  <div class="result-card" id="r-card">
+    <div class="result-card-glow" id="r-glow"></div>
+    <div class="result-card-inner">
+      <div class="result-section">
+        <div class="section-label" id="r-feat-label">✦ 特徴</div>
+        <div class="feature-text" id="r-feature"></div>
+      </div>
+      <div class="result-section" style="margin-bottom:0">
+        <div class="section-label" style="color:var(--muted)">🌑 裏の顔</div>
+        <div class="hidden-text" id="r-hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 得意・苦手 -->
+  <div class="result-card" id="r-skills-card">
+    <div class="result-card-glow" id="r-skills-glow"></div>
+    <div class="result-card-inner">
+      <div class="skills-row">
+        <div class="skill-block">
+          <div class="section-label" id="r-strong-label">💪 得意なこと</div>
+          <div class="skill-text" id="r-strong"></div>
+        </div>
+        <div class="skill-divider"></div>
+        <div class="skill-block">
+          <div class="section-label" style="color:var(--muted)">😓 苦手なこと</div>
+          <div class="skill-text skill-weak" id="r-weak"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ステータスバー -->
+  <div class="result-card" id="r-stats-card">
+    <div class="result-card-glow" id="r-stats-glow"></div>
+    <div class="result-card-inner">
+      <div class="section-label" id="r-stats-label">📊 ステータス</div>
+      <div class="stat-bars" id="r-stat-bars"></div>
+    </div>
+  </div>
+
+  <!-- あるあるセリフ -->
+  <div class="result-card" id="r-quote-card">
+    <div class="result-card-glow" id="r-quote-glow"></div>
+    <div class="result-card-inner">
+      <div class="section-label" id="r-quote-label">💬 あるあるセリフ</div>
+      <div class="quote-bubble" id="r-quote"></div>
+    </div>
+  </div>
+
+  <!-- 相性 -->
+  <div class="result-card" id="r-compat-card">
+    <div class="result-card-glow" id="r-compat-glow"></div>
+    <div class="result-card-inner">
+      <div class="section-label" id="r-compat-label">🤝 相性のいい役割</div>
+      <div class="compat-card">
+        <div class="compat-icon" id="r-compat-icon"></div>
+        <div class="compat-info">
+          <div class="compat-name" id="r-compat-name"></div>
+          <div class="compat-reason" id="r-compat-reason"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 心理学的コメント -->
+  <div class="result-card" id="r-psych-card">
+    <div class="result-card-glow" id="r-psych-glow"></div>
+    <div class="result-card-inner">
+      <div class="section-label" id="r-psych-label">🧠 心理学的な見方</div>
+      <div class="psych-text" id="r-psych"></div>
+    </div>
+  </div>
+
+  <!-- 危機的場面での行動予測 -->
+  <div class="result-card" id="r-crisis-card">
+    <div class="result-card-glow" id="r-crisis-glow"></div>
+    <div class="result-card-inner">
+      <div class="section-label" id="r-crisis-label">⚡ 修羅場でのあなたは…</div>
+      <div class="crisis-text" id="r-crisis"></div>
+    </div>
+  </div>
+
+  <!-- 成長ポイント -->
+  <div class="result-card" id="r-grow-card">
+    <div class="result-card-glow" id="r-grow-glow"></div>
+    <div class="result-card-inner">
+      <div class="section-label" id="r-grow-label">📈 もっと輝くために</div>
+      <div class="grow-text" id="r-grow"></div>
+    </div>
+  </div>
+
+  <!-- donut chart -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <div class="chart-title">タイプ別スコア分布</div>
+    </div>
+    <div class="chart-body">
+      <div class="donut-wrap">
+        <canvas id="donut-canvas" width="160" height="160"></canvas>
+        <div class="donut-center" id="donut-center"></div>
+      </div>
+      <div class="chart-legend" id="chart-legend"></div>
+    </div>
+  </div>
+
+  <p class="share-hint">「当たってる…！」ってなったらシェアしてね 👇</p>
+  <div class="result-btns">
+    <button class="retry-btn" onclick="restart()">↩ もう一度</button>
+    <button class="x-share-btn" id="x-share-btn" onclick="shareToX()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      Xでシェア
+    </button>
+  </div>
+  <button class="copy-btn" id="copy-btn" onclick="copyResult()">📋 テキストをコピー</button>
+</div>
+
+</div>
+<script>
+const QUESTIONS = {
+  male: [
+    { emoji:"🗺️", text:"友達グループで行き先が決まらないとき、あなたはどうする？", choices:[
+      { text:"「じゃあここにしよう」と一言で決める", scores:[3,0,1,0,1,0,0,0] },
+      { text:"「いや、ここより○○の方が絶対盛り上がるって！」と提案する", scores:[0,3,0,0,0,0,2,0] },
+      { text:"黙って全員の意見を聞いてから分析する", scores:[0,0,3,0,0,1,0,0] },
+      { text:"「どこでもいいよ〜」と流れに乗る", scores:[0,1,0,2,0,2,0,0] },
+    ]},
+    { emoji:"😂", text:"飲み会が盛り上がっていないとき、あなたがとる行動は？", choices:[
+      { text:"場の空気を読んで、率先してネタを振る", scores:[0,3,0,0,0,0,0,0] },
+      { text:"「なんか今日テンション低くない？」とズバリ言う", scores:[1,0,2,0,0,0,0,0] },
+      { text:"特に何もせず、自然に盛り上がるのを待つ", scores:[0,0,0,0,2,1,0,1] },
+      { text:"全員のグラスが空いていないか確認して動く", scores:[0,0,0,1,0,1,0,2] },
+    ]},
+    { emoji:"💥", text:"グループ内でちょっとした揉め事が起きたとき、あなたは？", choices:[
+      { text:"間に入って「まあまあ」と落ち着かせる", scores:[1,0,0,1,0,3,0,0] },
+      { text:"冷静に「それって○○が問題じゃない？」と核心をつく", scores:[0,0,3,0,0,0,0,0] },
+      { text:"「え、喧嘩？やばい笑」といじられ役に徹する", scores:[0,1,0,3,0,0,0,0] },
+      { text:"そっと現場を離れる", scores:[0,0,0,0,3,0,0,1] },
+    ]},
+    { emoji:"📱", text:"新しい店やイベントに行くとき、情報はどこから？", choices:[
+      { text:"自分が一番詳しいのでいつも提案する側", scores:[0,1,0,0,0,0,3,0] },
+      { text:"誰かが言ったことをちゃんと覚えていて調べておく", scores:[0,0,1,0,0,0,0,3] },
+      { text:"「どこでも行ったことない場所が好き」で気分で決める", scores:[0,0,0,0,3,0,1,0] },
+      { text:"みんなが決めた場所に黙ってついていく", scores:[0,0,0,2,1,2,0,0] },
+    ]},
+    { emoji:"🎤", text:"カラオケで、あなたがまず取る行動は？", choices:[
+      { text:"場が温まる前に自ら入れて歌い始める", scores:[1,3,0,0,0,0,0,0] },
+      { text:"みんなのテンションを見てから選曲を考える", scores:[0,0,2,0,0,1,1,0] },
+      { text:"みんなのリモコンを奪って全員分入れてあげる", scores:[0,0,0,0,0,0,0,3] },
+      { text:"自分の好きな曲だけ静かに歌う", scores:[0,0,1,0,2,0,0,1] },
+    ]},
+    { emoji:"🧳", text:"旅行の準備で、あなたが自然とやっていることは？", choices:[
+      { text:"行き先・ルート・宿を全部決める", scores:[3,0,0,0,0,0,0,0] },
+      { text:"「現地で決めようよ！」と言う", scores:[0,2,0,0,2,0,0,0] },
+      { text:"移動の手配・予約を黙々とやっておく", scores:[0,0,0,0,0,0,0,3] },
+      { text:"「おれ何持ってけばいい？」と聞く", scores:[0,1,0,3,0,1,0,0] },
+    ]},
+    { emoji:"🧠", text:"友達に「最近どうなの？」と聞かれたとき、あなたは？", choices:[
+      { text:"近況をそつなく話し、相手の話も引き出す", scores:[0,0,0,0,0,3,0,0] },
+      { text:"ちょっと自慢できるネタを持っていたりする", scores:[0,1,0,0,0,0,3,0] },
+      { text:"「まあ、普通」と一言で終わらせる", scores:[0,0,2,1,0,0,0,2] },
+      { text:"「えー知らんけど笑」と笑いに変える", scores:[0,2,0,2,0,0,0,0] },
+    ]},
+    { emoji:"⚡", text:"グループLINEが盛り上がっているとき、あなたは？", choices:[
+      { text:"話題を仕切って次の予定を決める流れに持っていく", scores:[3,0,0,0,0,0,0,0] },
+      { text:"ボケやスタンプで場を盛り上げる", scores:[0,3,0,1,0,0,0,0] },
+      { text:"既読はつけるが返信は少ない（でも全部読んでいる）", scores:[0,0,2,0,1,0,0,2] },
+      { text:"面白い情報や動画を貼り付ける", scores:[0,0,0,0,0,0,3,0] },
+    ]},
+  ],
+  female: [
+    { emoji:"🗓️", text:"友達との予定を立てるとき、あなたはどっち？", choices:[
+      { text:"日程・店・移動手段を全部まとめてLINEで送る", scores:[3,0,0,0,0,0,0,0] },
+      { text:"「みんなどこが行きたい？」と聞いてテンション上げる", scores:[0,3,0,0,0,0,0,0] },
+      { text:"「いつでもいいよ、合わせる！」と返す", scores:[0,0,2,0,0,2,0,1] },
+      { text:"自分のスケジュール帳と相談してから返信する", scores:[2,0,0,0,0,0,1,1] },
+    ]},
+    { emoji:"💬", text:"友達が落ち込んでいるとき、あなたは？", choices:[
+      { text:"「話聞くよ」と言って最後まで聞く", scores:[0,0,3,0,0,1,0,0] },
+      { text:"「え、なんで！？」と一緒に怒ってあげる", scores:[0,2,1,1,0,0,0,0] },
+      { text:"「そいつ絶対おかしいよ」とバッサリ言う", scores:[0,0,0,3,0,0,0,0] },
+      { text:"そっとお菓子を差し入れる", scores:[0,0,1,0,0,1,0,3] },
+    ]},
+    { emoji:"✨", text:"おしゃれ・流行について、あなたは？", choices:[
+      { text:"常にチェックしていて、新情報は私が一番早い", scores:[0,0,0,0,3,0,0,0] },
+      { text:"流行より「自分らしさ」を重視する", scores:[0,0,0,0,0,0,3,0] },
+      { text:"友達が持っているものをチェックして参考にする", scores:[0,1,0,0,1,1,0,1] },
+      { text:"おしゃれはするが、それより楽しいかどうかが大事", scores:[0,2,0,0,0,1,1,0] },
+    ]},
+    { emoji:"🥗", text:"ランチのお店を決めるとき、あなたは？", choices:[
+      { text:"「じゃあここ！」と即決する", scores:[3,1,0,0,0,0,0,0] },
+      { text:"「なんでもいい（みんなが良ければ）」と本気で思っている", scores:[0,0,0,0,0,3,0,1] },
+      { text:"「前回は○○だったから今回は△△にしない？」と提案", scores:[1,0,0,0,1,0,0,2] },
+      { text:"一人だけ食べられないものがある子に合わせて提案する", scores:[0,0,2,0,0,1,0,2] },
+    ]},
+    { emoji:"🔥", text:"グループ内で誰かが愚痴を言い始めたとき、あなたは？", choices:[
+      { text:"「それ、こういうことじゃない？」と分析する", scores:[0,0,0,3,0,0,1,0] },
+      { text:"「わかるわかる！！」と全力共感する", scores:[0,2,3,0,0,0,0,0] },
+      { text:"場が暗くならないよう、笑いに変えようとする", scores:[0,3,0,0,0,1,0,0] },
+      { text:"あとで「大丈夫だった？」とこっそり聞く", scores:[0,0,2,0,0,0,0,3] },
+    ]},
+    { emoji:"📸", text:"旅行の写真を撮るとき、あなたは？", choices:[
+      { text:"みんなの写真を撮る係になっていることが多い", scores:[0,0,1,0,0,1,0,3] },
+      { text:"自分のSNS映えを計算して場所やアングルを提案する", scores:[0,0,0,0,3,0,1,0] },
+      { text:"「ここ絶対撮っておきたい！」と直感で動く", scores:[0,1,0,0,0,0,3,0] },
+      { text:"全員集合写真をスケジュール通りに撮る", scores:[3,0,0,0,0,0,0,0] },
+    ]},
+    { emoji:"🧸", text:"グループLINEの空気が重くなっているとき、あなたは？", choices:[
+      { text:"スタンプや面白画像を投下して強制リセットする", scores:[0,3,0,0,0,0,0,0] },
+      { text:"「何かあった？話聞くよ」とDMを送る", scores:[0,0,3,0,0,1,0,0] },
+      { text:"既読スルーしながら状況を観察する", scores:[0,0,0,2,0,0,1,1] },
+      { text:"「みんなそろそろ集まりたくない？」と提案する", scores:[1,1,0,0,0,0,0,2] },
+    ]},
+    { emoji:"💭", text:"一人の時間、あなたは何をしているとき一番落ち着く？", choices:[
+      { text:"次の旅行や予定を綿密に計画する", scores:[3,0,0,0,0,0,0,0] },
+      { text:"SNSや動画を見てトレンドをチェックする", scores:[0,1,0,0,3,0,0,0] },
+      { text:"音楽や映画など自分の世界に浸る", scores:[0,0,0,0,0,0,3,0] },
+      { text:"友達からの相談に乗ったり、返信を考えている", scores:[0,0,3,1,0,0,0,1] },
+    ]},
+  ]
+};
+
+const TYPES = {
+  male: [
+    { name:"絶対的リーダー", pop:8,
+      feature:"グループの迷走を止める能力が、誰よりも突出している。「とりあえず動こう」という姿勢が全員を引っ張り、気づけばいつも中心にいる。責任を背負うことへの恐怖より、動けない状況への苛立ちが勝るタイプ。",
+      hidden:"実は誰よりもグループ全員が楽しめているかを気にしている。表では決断を下しながら、裏では「あいつ楽しんでたかな」と一人反省会をしている、責任感の塊。",
+      strong:"即断即決・場のコントロール・目標設定", weak:"他人に任せること・計画の変更への対応",
+      psych:"アドラー心理学の「共同体感覚」に近い動き方をするタイプ。集団の目標に向けて自分から動くことでやりがいを感じやすい傾向があり、リーダーシップ研究でいう「変革型リーダー」の特徴と重なる部分が多い。",
+      crisis:"全員が混乱している状況でも、誰より早く冷静になり指示を出す。感情ではなく「何をすべきか」に思考が切り替わるため、修羅場ほど本領発揮。ただし独断が強くなりすぎることも。",
+      grow:"「決める力」はすでに十分。次のステップは『任せる勇気』を持つこと。誰かに委ねた時のグループの底力を信じると、あなたのリーダーシップはさらに一段上に行く。",
+      compat:"冷静な軍師（分析役）", compatReason:"リーダーの決断を軍師が補強。最強の参謀コンビ。",
+      quote:"「とりあえずここ行こう、細かいことは後で」",
+      stats:{リーダー度:95, 共感力:55, 行動力:90, 空気読み:65, 自由度:50, 縁の下力:40},
+      color:"#4fc3f7", glow:"rgba(79,195,247,0.3)" },
+
+    { name:"特攻隊長（盛り上げ役）", pop:14,
+      feature:"場の空気が重くなった瞬間に体が動く、天性のエンターテイナー。スベることを「リスク」ではなく「チャレンジ」と捉えており、フルスイングで笑いを取りにいく姿勢がグループの体温を上げ続ける。",
+      hidden:"実は誰よりも周囲の表情を観察している。一見無鉄砲に見えて、全員が笑えるラインを瞬時に計算している。一人になると驚くほど静かになる。",
+      strong:"その場の空気を変える・笑いの瞬発力・テンション管理", weak:"深刻な場面での振る舞い・一人で悩むこと",
+      psych:"社会心理学の「道化師効果」に近い働きをするタイプ。場を盛り上げることへの意欲が強く、それがグループへの貢献感につながりやすい。ただしその動機は人によって様々で、純粋に楽しいから動く場合も多い。",
+      crisis:"喧嘩や重い空気の修羅場では、笑いで緊張を和らげようとして空回りすることも。ただし誰も動けない沈黙の場面では、最初に声を上げられる数少ない存在。",
+      grow:"「笑わせる力」はすでに武器。そこに「真剣に向き合う場面を逃げない」を一つ加えると、グループの中で「頼れる面白い人」という最強ポジションが完成する。",
+      compat:"聞き上手のバランサー", compatReason:"暴走しがちな特攻隊長をバランサーが静かに受け止める。",
+      quote:"「いや待って、これ絶対面白いから聞いて」",
+      stats:{リーダー度:45, 共感力:65, 行動力:85, 空気読み:80, 自由度:70, 縁の下力:30},
+      color:"#ffb74d", glow:"rgba(255,183,77,0.3)" },
+
+    { name:"冷静な軍師（分析役）", pop:10,
+      feature:"騒がしい場でも頭の中は常に冷静で、状況を構造的に把握している。トラブル時に放つ一言の精度が異常に高く、グループが迷走した時ほど真価を発揮する。目立たないが、実はいないと困る存在。",
+      hidden:"感情論で詰め寄られると、どう返せばいいか分からず脳内がフリーズする。論理では動かせない人間関係に、人知れず疲弊することがある。",
+      strong:"問題の本質を見抜く・冷静な判断・情報整理", weak:"感情的な場面・ノリだけで動くこと",
+      psych:"認知心理学でいう「システム2思考」（遅くて論理的な思考）が優位なタイプ。感情に流されず状況を俯瞰できる一方、共感的な対応が求められる場面では処理コストが高くなる。",
+      crisis:"全員が感情的になる場面でも、唯一「何が問題か」を整理して発言できる。その一言がグループを救うことが多い。ただし冷静すぎて「空気を読めてない」と誤解されることも。",
+      grow:"分析力はすでに誰より高い。「感情に乗っかる練習」を意識してみると、人間関係の幅が一気に広がる。論理と感情の両方を使える人間は、どこにいても最強。",
+      compat:"絶対的リーダー", compatReason:"分析した答えをリーダーが即行動に移す。理想のコンビ。",
+      quote:"「それって要するに○○ってことじゃない？」",
+      stats:{リーダー度:60, 共感力:50, 行動力:55, 空気読み:75, 自由度:60, 縁の下力:65},
+      color:"#81c784", glow:"rgba(129,199,132,0.3)" },
+
+    { name:"愛されマスコット", pop:13,
+      feature:"いじられることで会話にクッションを作り出す、グループの潤滑油。この人が笑いの標的になることで場が和み、不思議と全員の距離が縮まる。意識してやっているわけではないのに、なぜか机の上に置かれたぬいぐるみのような存在感がある。",
+      hidden:"いじられすぎると本気で凹む夜もある。でも翌朝にはリセットされているため、誰にも気づかれない。「気にしてない風」を演じるのが一番うまい。",
+      strong:"その場の緊張を和らげる・愛嬌・人懐っこさ", weak:"強く意見を主張すること・自分を守ること",
+      psych:"社会心理学の「スケープゴーティング」とは異なり、自発的にバッファ役を担うことで集団の凝集性を高めている。愛着理論的には「安全基地」を体現する存在で、誰もが無意識に近づきたくなる。",
+      crisis:"修羅場では「笑えない空気」に一番戸惑うタイプ。いじられキャラが通用しない場面で手持ち無沙汰になるが、実は誰よりも場の空気の変化を敏感に察知している。",
+      grow:"「いじられてもOK」な強さはすでにある。それに加えて「自分の本音を一言言える勇気」を持つと、グループ内での存在感がまったく変わる。",
+      compat:"特攻隊長（盛り上げ役）", compatReason:"いじる側といじられる側。最高の漫才コンビ。",
+      quote:"「え、なんで俺だけ！？（でも嫌いじゃない）」",
+      stats:{リーダー度:20, 共感力:75, 行動力:45, 空気読み:85, 自由度:55, 縁の下力:50},
+      color:"#ffd54f", glow:"rgba(255,213,79,0.3)" },
+
+    { name:"自由すぎる放浪者", pop:9,
+      feature:"予定の枠に収まらず、自分の興味の赴くままに動く存在。突然現れ、突然消えるが、そのたびにグループに新鮮な風を吹き込む。縛られることへの本能的な抵抗感が強く、「とりあえず行ってみよう」が人生の指針。",
+      hidden:"自分だけの世界観が確立されすぎていて、流行や周囲の話題に1ミリも興味を持てないことがある。孤独は平気だが、たまに「もっとグループに馴染むべきか」と自問する。",
+      strong:"固定観念を壊す発想・行動力・独自の視点", weak:"時間や約束を守ること・グループの空気に合わせること",
+      psych:"マズローの欲求階層でいう「自己実現欲求」が最も強く、外的な承認より内的な動機で動くタイプ。心理学的には「高い自律性」を持つが、同時に「関係性の欲求」とのバランスに課題を抱えやすい。",
+      crisis:"修羅場になった瞬間、その場を離れる可能性が最も高いタイプ。逃げているわけではなく、「自分がいても解決できない」と冷静に判断している。ただし後から独自の解決策を持ってくることがある。",
+      grow:"自由でいることはあなたの強さ。そこに「ここぞという場面だけ踏みとどまる」を加えると、グループの中で「気まぐれだけど信頼できる」という唯一無二の立ち位置が生まれる。",
+      compat:"トレンド情報通", compatReason:"正反対だからこそ、お互いの世界を広げ合える。",
+      quote:"「あ、ごめん今日急用できた。また今度ね」",
+      stats:{リーダー度:35, 共感力:40, 行動力:80, 空気読み:30, 自由度:100, 縁の下力:20},
+      color:"#ce93d8", glow:"rgba(206,147,216,0.3)" },
+
+    { name:"聞き上手のバランサー", pop:20,
+      feature:"誰の話でも否定せず、最後まで受け止める包容力の持ち主。グループ内の温度差や対立を察知する感度が高く、誰も傷つけない言葉選びで場を収める。「この人がいれば大丈夫」と思わせる安心感が最大の武器。",
+      hidden:"自分の意見を問われると途端に答えに詰まる。周りに合わせすぎた結果、「自分が本当に何を思っているのか」が分からなくなることがある。",
+      strong:"傾聴・対立の緩和・場の安定", weak:"自分の意見を押し通すこと・断ること",
+      psych:"ロジャーズの「無条件の積極的関心」を自然に体現するタイプ。共感疲労（エンパシー・ファティーグ）のリスクがある一方、集団の心理的安全性を高める上で欠かせない存在。",
+      crisis:"修羅場では誰より早く「仲裁役」に回る。両者の言い分を聞いて橋渡しをしようとするが、板挟みになってしまい自分が一番消耗する、という状況が発生しやすい。",
+      grow:"「聞く力」は間違いなく武器。次は「自分の話をする練習」。一言でいい、「自分はこう思う」を言える場面を少しずつ増やすと、あなたの存在感はさらに増す。",
+      compat:"絶対的リーダー", compatReason:"リーダーが決めて、バランサーが全員を納得させる。",
+      quote:"「まあ、どっちの気持ちもわかるんだよな〜」",
+      stats:{リーダー度:30, 共感力:90, 行動力:40, 空気読み:95, 自由度:35, 縁の下力:75},
+      color:"#80cbc4", glow:"rgba(128,203,196,0.3)" },
+
+    { name:"トレンド情報通", pop:12,
+      feature:"常にアンテナを張り、新しい遊び・店・話題を誰よりも早く仕入れてくる。グループの「次の行き先」を常に提案できる存在で、フットワークを軽くする重要な情報源。",
+      hidden:"「古い」「知らない」と思われることへの恐怖が人一倍強い。常にスマホをチェックし続けているのは、実は不安の裏返しでもある。",
+      strong:"情報収集・新しいものへの適応・提案力", weak:"流行が去った後の判断・深く一つに集中すること",
+      psych:"心理学でいう「新奇探索性（ノベルティ・シーキング）」が高い傾向があるタイプ。新しい情報や体験への感度が高く、それがグループへの情報提供という形で発揮されやすい。好奇心の強さが行動力の源になっている。",
+      crisis:"修羅場では「こういう時、あの店で解散した方がいい」など、局面打開の提案を意外と的確に出せる。場の流れを読んでいるからこそ、空気の変えどころを知っている。",
+      grow:"情報を「仕入れる力」はすでに最高レベル。そこに「自分の意見を乗せる」ことを意識すると、「詳しい人」から「頼りになる人」へとステージが上がる。",
+      compat:"淡々とこなす職人", compatReason:"情報通が見つけて、職人が手配する。最高の実行チーム。",
+      quote:"「そこもう行った？最近めっちゃ話題だよ」",
+      stats:{リーダー度:40, 共感力:55, 行動力:70, 空気読み:70, 自由度:65, 縁の下力:45},
+      color:"#ff8a65", glow:"rgba(255,138,101,0.3)" },
+
+    { name:"淡々とこなす職人", pop:14,
+      feature:"運転・予約・会計・幹事仕事。誰もが面倒くさがるタスクを、不満も言わず完璧にこなす。派手さはないが、この人がいなければグループの活動はまず成立しない。縁の下の力持ちを地で行く存在。",
+      hidden:"感謝されたいわけではない。ただ「当たり前」として扱われると、ほんの少しだけ寂しくなる。誰かが「いつもありがとう」と言ってくれる瞬間が、一番報われる気がする。",
+      strong:"段取り・細部への気配り・実務遂行力", weak:"自分の気持ちを言語化すること・注目されること",
+      psych:"行動心理学の「完遂欲求」が強いタイプ。やりかけを放置できない脳の特性が、グループへの高い貢献として現れている。フロー理論的には、作業中に「没頭状態」に入りやすい。",
+      crisis:"修羅場でも粛々と「今できること」を進める。感情的な議論には加わらないが、後処理・フォローを誰より確実にこなす。嵐が過ぎた後、一番動いているのはこのタイプ。",
+      grow:"縁の下の力はすでに最強。次は「自分がやっていることを、たまに口に出す」練習を。アピールではなく、共有するだけでいい。あなたの貢献に気づいていない人は、実はたくさんいる。",
+      compat:"愛されマスコット", compatReason:"マスコットが「ありがとう！」と言ってくれるだけで全部報われる。",
+      quote:"「あ、もう予約しといたから」",
+      stats:{リーダー度:35, 共感力:60, 行動力:75, 空気読み:70, 自由度:30, 縁の下力:100},
+      color:"#90a4ae", glow:"rgba(144,164,174,0.3)" },
+  ],
+  female: [
+    { name:"完璧プロデューサー", pop:10,
+      feature:"旅行の計画・予約・タイムスケジュールを全て一人でこなせてしまう、生粋のオーガナイザー。彼女がいると集まりのクオリティが2段階上がる。「楽しい時間を作ること」への責任感が、誰よりも強い。",
+      hidden:"計画が1つ狂うだけで、内心パニックになっている。表情には出さないが、スケジュール変更の連絡が来るたびに脳内でリカバリー策を高速で検索している。",
+      strong:"段取り・先を見越した準備・場の品質管理", weak:"想定外への対応・誰かに任せて待つこと",
+      psych:"「制御欲求（コントロール欲求）」が比較的高い傾向があり、先を見通して備えることに安心感を覚えやすいタイプ。完璧主義的な姿勢が計画力として発揮される一方、想定外の変化がストレスになることもある。",
+      crisis:"修羅場でも計画を立て直そうとする。「今からプランBに切り替えよう」と即座に動けるのはこのタイプだけ。ただし自分が一番焦っているのに、それを表に出せないことで孤独になりがち。",
+      grow:"計画する力は誰にも負けない。「7割完成で動き出す勇気」を持つと、もっと軽やかに楽しめるようになる。完璧じゃなくても、あなたが作る時間は十分すぎるほど素晴らしい。",
+      compat:"平和主義の癒やし担当", compatReason:"プロデューサーが焦り始めたとき、癒やし担当の笑顔が唯一の解毒剤。",
+      quote:"「13時にここ集合ね。遅刻厳禁で」",
+      stats:{リーダー度:85, 共感力:60, 行動力:90, 空気読み:70, 自由度:30, 縁の下力:85},
+      color:"#f48fb1", glow:"rgba(244,143,177,0.3)" },
+
+    { name:"太陽のムードメーカー", pop:16,
+      feature:"彼女がいるだけで場の温度が3度上がる。常に喋り、常に笑い、常に誰かに話しかけている。沈黙を恐れず、むしろ「この沈黙を自分が埋めなければ」という使命感すら持っている。",
+      hidden:"サービス精神で喋り続けた結果、家に帰ってからどっと疲れることがある。「もっと気を抜いていいよ」と言われても、なぜかスイッチが切れない。",
+      strong:"話題作り・場の活性化・初対面の緊張を解く", weak:"静かな時間を楽しむこと・自分の疲れに気づくこと",
+      psych:"外向性（エクストラバージョン）が高めで、人と関わることでエネルギーを充電しやすいタイプ。社会的な場が得意な分、長時間フルスロットルで動き続けると疲れが溜まりやすい面もある。意識的な休息が大切。",
+      crisis:"修羅場ではとにかく話し続けることで場を持たせようとする。空気を和らげようとする意図は正しいが、深刻な場面で的外れなテンションになってしまうことも。沈黙を許容できた時が、一つの成長ポイント。",
+      grow:"明るさはあなたの天才的な才能。そこに「あえて黙って聞く時間を作る」を加えると、人間としての深みが一段増す。喋らない時間のあなたが、一番印象に残ることもある。",
+      compat:"共感のカウンセラー", compatReason:"喋り続けるムードメーカーを、カウンセラーがちゃんと受け止める。",
+      quote:"「ちょっと聞いて！！これ絶対ウケるから！！」",
+      stats:{リーダー度:55, 共感力:75, 行動力:85, 空気読み:80, 自由度:70, 縁の下力:40},
+      color:"#ffb74d", glow:"rgba(255,183,77,0.3)" },
+
+    { name:"共感のカウンセラー", pop:19,
+      feature:"「わかる〜！」の天才。相手の感情を即座に受け取り、否定せず最後まで話を聞き続ける。深夜の長電話相手に選ばれやすく、友達に「話を聞いてもらうならこの子」と思わせる安心感がある。",
+      hidden:"友達の悩みを自分のこととして抱え込んでしまい、翌朝まで一人で引きずることがある。人の痛みに敏感すぎて、関係ない場面でも「あの子大丈夫かな」と気になってしまう。",
+      strong:"傾聴・感情の言語化・人の気持ちを汲む", weak:"自分の限界を認めること・NOと言うこと",
+      psych:"他者の感情を敏感に受け取りやすい特性を持つタイプ。HSP（高感受性）の概念に近い部分もあり、相手の気持ちに寄り添う力が高い一方、感情移入しすぎて自分が疲れてしまうこともある。",
+      crisis:"修羅場では両者の感情を受け取りすぎて、自分が一番消耗する。仲裁よりも「それぞれの気持ちを言語化してあげる」ことで、気づかぬうちに場を鎮めていることが多い。",
+      grow:"共感力は最強の武器。次に磨くべきは「自分の感情にも同じだけ優しくすること」。他人に向けている丁寧さを、自分にも向けてあげると、もっと長く・深く活躍できる。",
+      compat:"毒舌のオブザーバー", compatReason:"共感で受け止めて、毒舌が的確に斬る。最強の相談コンビ。",
+      quote:"「それ絶対あなたは悪くないよ、聞いて」",
+      stats:{リーダー度:25, 共感力:100, 行動力:40, 空気読み:90, 自由度:40, 縁の下力:70},
+      color:"#80cbc4", glow:"rgba(128,203,196,0.3)" },
+
+    { name:"毒舌のオブザーバー", pop:7,
+      feature:"迷走する会話に一言で終止符を打てる、グループの良心。感情に流されず冷静に本質を見抜く目を持ち、みんなが言えないことをズバリ言える数少ない存在。その毒舌は愛情の裏返し。",
+      hidden:"実は誰よりも情に厚く、仲間が理不尽に傷つけられた時には真っ先に怒りを感じる。ドライに見えて、内側は誰より熱い。",
+      strong:"本質を見抜く・冷静な評価・嘘のないフィードバック", weak:"オブラートに包んで伝えること・感情的な場に溶け込むこと",
+      psych:"認知バイアスの影響を受けにくい「分析的思考」の持ち主。心理的には「批判的思考（クリティカル・シンキング）」が自然に働くタイプで、集団思考（グループシンク）の暴走を止める貴重な存在。",
+      crisis:"修羅場では最も的確な発言をするが、それが逆に火に油を注ぐことも。感情が高ぶっている相手に正論をぶつけるタイミングの難しさが、このタイプの唯一の弱点。",
+      grow:"真実を見抜く目はすでに最高レベル。「伝えるタイミングを一呼吸待つ」を意識するだけで、あなたの言葉の刺さり方が圧倒的に変わる。正しいことを、より多くの人に届けられる。",
+      compat:"平和主義の癒やし担当", compatReason:"毒舌の後を癒やし担当がフォロー。絶妙なバランス。",
+      quote:"「それってつまり、あなたが気にしすぎなだけでは？」",
+      stats:{リーダー度:55, 共感力:60, 行動力:60, 空気読み:85, 自由度:70, 縁の下力:50},
+      color:"#ef9a9a", glow:"rgba(239,154,154,0.3)" },
+
+    { name:"流行の発信源", pop:11,
+      feature:"彼女が使っているものが次のブームになる。常に自分磨きを怠らず、新しいものへのアンテナが誰より高い。グループの「おしゃれ番長」として、集まりのレベルを底上げしてくれる存在。",
+      hidden:"「常に最先端でいなければ」という見えないプレッシャーを常に背負っている。人に遅れを取ることへの恐怖が、エネルギーの源でもあり、疲弊の原因にもなっている。",
+      strong:"トレンドの発信・自己プロデュース・グループのブランド向上", weak:"流行に左右されない判断・自分のペースで休むこと",
+      psych:"社会的比較理論（フェスティンガー）の観点から、常に上方比較を行うことで自己向上のモチベーションを維持するタイプ。ただし比較対象が高すぎると自己評価の低下につながりやすい。",
+      crisis:"修羅場では「こういう時はどう振る舞うのが正解か」を瞬時に計算しようとする。感情より「見られ方」を気にするため、本音を出しにくい。でもその判断力がグループを守ることもある。",
+      grow:"発信力はすでに本物。次は「流行じゃなくても自分が好きなものを堂々と好きと言う」練習を。あなたが「これが好き」と言った瞬間、それが新しいトレンドになる。",
+      compat:"マイペースな芸術家", compatReason:"流行を追う発信源と、我が道を行く芸術家。互いに刺激し合う。",
+      quote:"「これ今めっちゃ流行ってるんだけど、知ってた？」",
+      stats:{リーダー度:50, 共感力:55, 行動力:75, 空気読み:75, 自由度:65, 縁の下力:35},
+      color:"#ce93d8", glow:"rgba(206,147,216,0.3)" },
+
+    { name:"平和主義の癒やし担当", pop:18,
+      feature:"怒っている姿を見たことがない、グループの守護天使。彼女がニコニコしているだけで不穏な空気が霧散し、誰もが「まあ、いっか」という気持ちになれる。存在そのものが癒しである。",
+      hidden:"「何食べたい？」への答えが本気で「なんでもいい（みんなが良ければ）」なので、時々困られる。自分の意見がないわけではないが、誰かをがっかりさせることへの恐怖が勝ってしまう。",
+      strong:"場の雰囲気を和らげる・怒りを鎮める・無条件の受容", weak:"自分の希望を言葉にすること・対立に踏み込むこと",
+      psych:"「葛藤回避」の傾向があり、場の安定や調和を大切にする行動パターン。アタッチメント理論でいう「安定型」に近い特徴を持ちやすく、周囲に安心感を与える力がある。自分の感情を後回しにしがちな面も。",
+      crisis:"修羅場では誰にも怒らず、誰も責めず、ただそこに居続けることで場を安定させる。「この人が怒らないなら大丈夫かも」と思わせる存在感が、修羅場を静かに終わらせる。",
+      grow:"あなたのいるだけで場が和む力は本物。次は「自分の気持ちを小さく一言言ってみること」。「実は私、○○の方が好きかも」と言えた瞬間、あなたの周りの人はもっとあなたを大切にしたくなる。",
+      compat:"完璧プロデューサー", compatReason:"プロデューサーがピリついたとき、癒やし担当の存在が全てを救う。",
+      quote:"「え、なんでもいいよ〜！みんなが楽しければ！」",
+      stats:{リーダー度:20, 共感力:90, 行動力:40, 空気読み:95, 自由度:45, 縁の下力:80},
+      color:"#a5d6a7", glow:"rgba(165,214,167,0.3)" },
+
+    { name:"マイペースな芸術家", pop:9,
+      feature:"流行より「自分が好きか」を基準にする、独自の美学の持ち主。感性が鋭く、他の人が気づかないものに価値を見出す。グループに深みと個性を与える、唯一無二の存在。",
+      hidden:"興味のない話が始まると、意識が完全に別の宇宙へ飛んでいる。「聞いてなかった」ことがバレてから慌てて取り繕う瞬間が、人生に何百回もある。",
+      strong:"独自の視点・創造力・こだわりの深さ", weak:"興味のない分野への集中・みんなに合わせた選択",
+      psych:"チクセントミハイの「フロー理論」において、興味の対象に対してのみ極度の集中状態（フロー）に入れるタイプ。選択的注意が強く、外部の評価より内的基準で動く「内発的動機づけ」の典型。",
+      crisis:"修羅場では蚊帳の外にいることが多い。感情的な争いに興味が持てないため傍観者になりがちだが、冷静な第三者として後から的確なコメントを出せる唯一の存在でもある。",
+      grow:"独自の感性はあなたの最大の武器。次は「その感性を言葉にして人に伝える練習」を。あなたの「好き」を語った時、周りは驚くほど惹きつけられる。もったいないくらい磨かれた目を、もっと外に向けてみて。",
+      compat:"影のコーディネーター", compatReason:"コーディネーターが芸術家の世界をそっと守ってくれる。",
+      quote:"「それよりこっちの方が絶対かわいくない？」",
+      stats:{リーダー度:30, 共感力:55, 行動力:50, 空気読み:35, 自由度:95, 縁の下力:40},
+      color:"#90caf9", glow:"rgba(144,202,249,0.3)" },
+
+    { name:"影のコーディネーター", pop:10,
+      feature:"目立たない場所で、さりげなく全員のケアをしている。誰かが孤立しそうになると自然に話しかけ、場の温度を均一に保つ。彼女が動いていることに誰も気づいていないが、いなくなると全員が「なんか今日ちがう」と感じる。",
+      hidden:"自分の努力が気づかれないことに慣れすぎている。感謝されれば嬉しいが、そうでなくても動き続けてしまう、真の縁の下の力持ち。たまに「誰かに気にかけてもらいたい」と思う夜がある。",
+      strong:"全員への気配り・場の空気の均衡・さりげないフォロー", weak:"自分の存在を前に出すこと・自分のケアを優先すること",
+      psych:"「向社会的行動」の研究で注目される利他的行動のパターンを自然に実践するタイプ。見返りを求めない行動は内発的動機に基づいており、集団の「心理的安全性」を底上げする最重要人物。",
+      crisis:"修羅場でも誰かのフォローをしている。争っている当事者ではなく、その周りで泣きそうな人や置いてけぼりになっている人に気づき、そっと寄り添っている。いつの間にか場全体が落ち着くのは、このタイプのおかげ。",
+      grow:"縁の下の力は本物中の本物。次は「自分が疲れていることに気づく練習」を。あなたが元気でいることが、グループ全体の安定につながっている。自分を大切にすることが、最大の貢献になる。",
+      compat:"太陽のムードメーカー", compatReason:"ムードメーカーが表で輝き、コーディネーターが裏で支える。最高の二人三脚。",
+      quote:"「あ、○○ちゃん大丈夫だった？さっきなんか元気なさそうで」",
+      stats:{リーダー度:25, 共感力:90, 行動力:55, 空気読み:95, 自由度:35, 縁の下力:100},
+      color:"#fff176", glow:"rgba(255,241,118,0.3)" },
+  ]
+};
+
+let gender = 'male', currentQ = 0, scores = [0,0,0,0,0,0,0,0], resultType = null;
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startQuiz(g) {
+  gender = g; currentQ = 0; scores = [0,0,0,0,0,0,0,0];
+  document.getElementById('q-gender-label').textContent = g === 'male' ? '🟦 男子グループ' : '🟥 女子グループ';
+  document.getElementById('progress-fill').style.background = g === 'male' ? 'var(--accent-m)' : 'var(--accent-f)';
+  renderQuestion();
+  show('s-quiz');
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[gender][currentQ];
+  document.getElementById('q-num').textContent = `Q ${currentQ+1} / 8`;
+  document.getElementById('progress-fill').style.width = `${(currentQ / 8) * 100}%`;
+  document.getElementById('q-emoji').textContent = q.emoji;
+  document.getElementById('q-text').textContent = q.text;
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = `choice-btn ${gender === 'male' ? 'male-theme' : 'female-theme'}`;
+    btn.textContent = c.text;
+    btn.onclick = () => answer(i);
+    choicesEl.appendChild(btn);
+  });
+  const card = document.getElementById('q-card');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'fadeUp 0.35s ease';
+}
+
+function answer(i) {
+  QUESTIONS[gender][currentQ].choices[i].scores.forEach((s, j) => { scores[j] += s; });
+  currentQ++;
+  if (currentQ < 8) {
+    renderQuestion();
+  } else {
+    show('s-loading');
+    setTimeout(() => { showResult(); }, 600);
+  }
+}
+
+function showResult() {
+  const idx = scores.indexOf(Math.max(...scores));
+  const type = TYPES[gender][idx];
+  resultType = type;
+  const types = TYPES[gender];
+
+  // 固定人口比率（ドーナツ用）
+  const topPct = type.pop;
+
+  // スコアベースの純粋度（ピル用）
+  const total = scores.reduce((a,b) => a+b, 0) || 1;
+  const scorePct = Math.round(scores[idx] / total * 100);
+
+  // type title
+  document.getElementById('r-type').textContent = `【${type.name}】`;
+  document.getElementById('r-type').style.color = type.color;
+
+  // 純粋度ピル → スコアから算出（診断ごとに変わる）
+  const shortName = type.name.replace(/（.*?）/, '');
+  let purityIcon, purityText;
+  if (scorePct >= 45)      { purityIcon = '⚡'; purityText = `超純粋な${shortName}型`; }
+  else if (scorePct >= 32) { purityIcon = '✦';  purityText = `かなり${shortName}型`; }
+  else if (scorePct >= 22) { purityIcon = '◎';  purityText = `やや${shortName}寄り`; }
+  else                     { purityIcon = '◈';  purityText = `複数タイプの複合型`; }
+  const purityEl = document.getElementById('r-purity');
+  purityEl.textContent = `${purityIcon} ${purityText}`;
+  purityEl.style.color = type.color;
+  purityEl.style.borderColor = type.color;
+  // ミニバーもスコア純粋度で伸びる
+  const purityBar = document.getElementById('r-purity-bar');
+  purityBar.style.background = type.color;
+  setTimeout(() => { purityBar.style.width = scorePct + '%'; }, 400);
+
+  // main card
+  document.getElementById('r-feature').textContent = type.feature;
+  document.getElementById('r-hidden').textContent = type.hidden;
+  document.getElementById('r-feat-label').style.color = type.color;
+  document.getElementById('r-card').style.borderColor = type.color + '44';
+  document.getElementById('r-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}18, transparent 70%)`;
+
+  // quote card
+  const quoteEl = document.getElementById('r-quote');
+  quoteEl.textContent = type.quote;
+  quoteEl.style.color = type.color;
+  document.getElementById('r-quote-label').style.color = type.color;
+  document.getElementById('r-quote-card').style.borderColor = type.color + '44';
+  document.getElementById('r-quote-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}10, transparent 70%)`;
+
+  // compat card
+  document.getElementById('r-compat-name').textContent = `【${type.compat}】`;
+  document.getElementById('r-compat-name').style.color = type.color;
+  document.getElementById('r-compat-reason').textContent = type.compatReason;
+  document.getElementById('r-compat-label').style.color = type.color;
+  document.getElementById('r-compat-card').style.borderColor = type.color + '44';
+  document.getElementById('r-compat-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}10, transparent 70%)`;
+  const compatIcon = document.getElementById('r-compat-icon');
+  compatIcon.textContent = '🤝';
+  compatIcon.style.background = type.color + '22';
+  compatIcon.style.border = `1px solid ${type.color}44`;
+
+  // psych card
+  const psychEl = document.getElementById('r-psych');
+  psychEl.textContent = type.psych;
+  psychEl.style.borderLeftColor = type.color;
+  document.getElementById('r-psych-label').style.color = type.color;
+  document.getElementById('r-psych-card').style.borderColor = type.color + '44';
+  document.getElementById('r-psych-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}10, transparent 70%)`;
+
+  // crisis card
+  document.getElementById('r-crisis').textContent = type.crisis;
+  document.getElementById('r-crisis-label').style.color = type.color;
+  document.getElementById('r-crisis-card').style.borderColor = type.color + '44';
+  document.getElementById('r-crisis-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}10, transparent 70%)`;
+
+  // grow card
+  document.getElementById('r-grow').textContent = type.grow;
+  document.getElementById('r-grow-label').style.color = type.color;
+  document.getElementById('r-grow-card').style.borderColor = type.color + '44';
+  document.getElementById('r-grow-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}10, transparent 70%)`;
+
+  // skills card
+  document.getElementById('r-strong').textContent = type.strong;
+  document.getElementById('r-weak').textContent = type.weak;
+  document.getElementById('r-strong-label').style.color = type.color;
+  document.getElementById('r-skills-card').style.borderColor = type.color + '44';
+  document.getElementById('r-skills-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}10, transparent 70%)`;
+
+  // stat bars
+  document.getElementById('r-stats-label').style.color = type.color;
+  document.getElementById('r-stats-card').style.borderColor = type.color + '44';
+  document.getElementById('r-stats-glow').style.background =
+    `radial-gradient(ellipse 100% 60% at 50% 0%, ${type.color}10, transparent 70%)`;
+  const statBarsEl = document.getElementById('r-stat-bars');
+  statBarsEl.innerHTML = '';
+  Object.entries(type.stats).forEach(([label, val]) => {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = `
+      <span class="stat-label">${label}</span>
+      <div class="stat-track"><div class="stat-fill" data-val="${val}" style="background:${type.color}"></div></div>
+      <span class="stat-val" style="color:${type.color}">${val}</span>`;
+    statBarsEl.appendChild(row);
+  });
+
+  // donut — 固定popベースで描画
+  const canvas = document.getElementById('donut-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 80, cy = 80, r = 68, inner = 44;
+  const popTotal = types.reduce((a, t) => a + t.pop, 0);
+
+  // legend
+  const legendEl = document.getElementById('chart-legend');
+  legendEl.innerHTML = '';
+  types.forEach((t, i) => {
+    const li = document.createElement('div');
+    li.className = 'legend-item' + (i === idx ? ' active' : '');
+    const sn = t.name.replace(/（.*?）/, '');
+    li.innerHTML = `<span class="legend-dot" style="background:${t.color}${i===idx?'':'88'}"></span>${sn}<span class="legend-pct" style="color:${i===idx?t.color:'var(--muted)'};">${t.pop}%</span>`;
+    legendEl.appendChild(li);
+  });
+
+  // donut center
+  document.getElementById('donut-center').innerHTML =
+    `<span class="donut-pct" style="color:${type.color}">${topPct}%</span><span class="donut-label">が${shortName}型</span>`;
+
+  show('s-result');
+
+  // animate stat bars
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll('.stat-fill').forEach(el => {
+        el.style.width = el.getAttribute('data-val') + '%';
+      });
+    }, 150);
+  });
+
+  // X share btn color accent
+  const xBtn = document.getElementById('x-share-btn');
+  if (xBtn) { xBtn.style.boxShadow = `0 0 20px ${type.color}33`; }
+
+  // animate donut with fixed pop ratios
+  let progress = 0;
+  const segments = types.map((t, i) => ({ pct: t.pop / popTotal, color: t.color, isTop: i === idx }));
+  const gap = 0.02;
+
+  function drawDonut(prog) {
+    ctx.clearRect(0, 0, 160, 160);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.arc(cx, cy, inner, Math.PI * 2, 0, true);
+    ctx.fillStyle = '#1e1e2a';
+    ctx.fill();
+    let start = -Math.PI / 2;
+    segments.forEach(seg => {
+      const sweep = seg.pct * Math.PI * 2 * prog;
+      if (sweep < 0.002) { start += sweep; return; }
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, start + gap, start + sweep - gap);
+      ctx.arc(cx, cy, inner, start + sweep - gap, start + gap, true);
+      ctx.closePath();
+      ctx.fillStyle = seg.isTop ? seg.color : seg.color + '50';
+      ctx.fill();
+      start += sweep;
+    });
+  }
+
+  function animateDonut() {
+    progress = Math.min(progress + 0.045, 1);
+    drawDonut(progress);
+    if (progress < 1) requestAnimationFrame(animateDonut);
+  }
+  requestAnimationFrame(animateDonut);
+}
+
+function shareToX() {
+  if (!resultType) return;
+  const shortName = resultType.name.replace(/（.*?）/, '');
+  const text = `グループ役割診断をやってみた！\n\n私は【${resultType.name}】でした🎯\n\n「${resultType.quote.replace(/「|」/g, '')}」\n\n相性がいい役割：【${resultType.compat}】\n\n#グループ役割診断 #${shortName} #当たってる`;
+  const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+  window.open(url, '_blank', 'width=600,height=450');
+}
+
+function copyResult() {
+  if (!resultType) return;
+  const text = `【グループ役割診断】\n私の役割：【${resultType.name}】\n\n${resultType.feature}\n\nよく言うセリフ：${resultType.quote}\n相性のいい役割：【${resultType.compat}】\n\n#グループ役割診断 #当たってる`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ コピーしました！';
+    btn.style.color = resultType.color;
+    btn.style.borderColor = resultType.color;
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  });
+}
+
+function restart() { show('s-top'); }
+</script>
+</body>
+</html>
