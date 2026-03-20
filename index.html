@@ -770,10 +770,10 @@ const QUESTIONS = {
       { text:"「え、喧嘩？やばい笑」といじられ役に徹する", scores:[0,1,0,3,0,0,0,0] },
       { text:"そっと現場を離れる", scores:[0,0,0,0,3,0,0,1] },
     ]},
-    { emoji:"📱", text:"新しい店やイベントに行くとき、情報はどこから？", choices:[
+    { emoji:"📱", text:"新しい店やイベントに行くとき、あなたはどっち？", choices:[
       { text:"自分が一番詳しいのでいつも提案する側", scores:[0,1,0,0,0,0,3,0] },
-      { text:"誰かが言ったことをちゃんと覚えていて調べておく", scores:[0,0,1,0,0,0,0,3] },
-      { text:"「どこでも行ったことない場所が好き」で気分で決める", scores:[0,0,0,0,3,0,1,0] },
+      { text:"誰かが前に言ってたことをちゃんと覚えていて「あの店行かない？」と言う", scores:[0,0,1,0,0,0,0,3] },
+      { text:"「知らない街をぶらぶらしたい」と言い出す", scores:[0,0,0,0,3,0,1,0] },
       { text:"みんなが決めた場所に黙ってついていく", scores:[0,0,0,2,1,2,0,0] },
     ]},
     { emoji:"🎤", text:"カラオケで、あなたがまず取る行動は？", choices:[
@@ -783,9 +783,9 @@ const QUESTIONS = {
       { text:"自分の好きな曲だけ静かに歌う", scores:[0,0,1,0,2,0,0,1] },
     ]},
     { emoji:"🧳", text:"旅行の準備で、あなたが自然とやっていることは？", choices:[
-      { text:"行き先・ルート・宿を全部決める", scores:[3,0,0,0,0,0,0,0] },
+      { text:"行き先・宿・日程を全部まとめて共有する", scores:[3,0,0,0,0,0,0,0] },
       { text:"「現地で決めようよ！」と言う", scores:[0,2,0,0,2,0,0,0] },
-      { text:"移動の手配・予約を黙々とやっておく", scores:[0,0,0,0,0,0,0,3] },
+      { text:"「持ち物リスト作っておいたから」と全員に送る", scores:[0,0,0,0,0,0,0,3] },
       { text:"「おれ何持ってけばいい？」と聞く", scores:[0,1,0,3,0,1,0,0] },
     ]},
     { emoji:"🧠", text:"友達に「最近どうなの？」と聞かれたとき、あなたは？", choices:[
@@ -803,10 +803,10 @@ const QUESTIONS = {
   ],
   female: [
     { emoji:"🗓️", text:"友達との予定を立てるとき、あなたはどっち？", choices:[
-      { text:"日程・店・移動手段を全部まとめてLINEで送る", scores:[3,0,0,0,0,0,0,0] },
+      { text:"日程・店・集合場所を全部まとめてLINEで送る", scores:[3,0,0,0,0,0,0,0] },
       { text:"「みんなどこが行きたい？」と聞いてテンション上げる", scores:[0,3,0,0,0,0,0,0] },
       { text:"「いつでもいいよ、合わせる！」と返す", scores:[0,0,2,0,0,2,0,1] },
-      { text:"自分のスケジュール帳と相談してから返信する", scores:[2,0,0,0,0,0,1,1] },
+      { text:"「○○ちゃんはあの日NG って言ってたから外そうよ」と気を使う", scores:[0,0,1,0,0,1,0,3] },
     ]},
     { emoji:"💬", text:"友達が落ち込んでいるとき、あなたは？", choices:[
       { text:"「話聞くよ」と言って最後まで聞く", scores:[0,0,3,0,0,1,0,0] },
@@ -836,7 +836,7 @@ const QUESTIONS = {
       { text:"みんなの写真を撮る係になっていることが多い", scores:[0,0,1,0,0,1,0,3] },
       { text:"自分のSNS映えを計算して場所やアングルを提案する", scores:[0,0,0,0,3,0,1,0] },
       { text:"「ここ絶対撮っておきたい！」と直感で動く", scores:[0,1,0,0,0,0,3,0] },
-      { text:"全員集合写真をスケジュール通りに撮る", scores:[3,0,0,0,0,0,0,0] },
+      { text:"「みんなで撮ろう！集まって〜」と声をかけて回る", scores:[2,1,1,0,0,1,0,0] },
     ]},
     { emoji:"🧸", text:"グループLINEの空気が重くなっているとき、あなたは？", choices:[
       { text:"スタンプや面白画像を投下して強制リセットする", scores:[0,3,0,0,0,0,0,0] },
@@ -1281,14 +1281,16 @@ function showResult() {
 function shareToX() {
   if (!resultType) return;
   const shortName = resultType.name.replace(/（.*?）/, '');
-  const text = `グループ役割診断をやってみた！\n\n私は【${resultType.name}】でした🎯\n\n「${resultType.quote.replace(/「|」/g, '')}」\n\n相性がいい役割：【${resultType.compat}】\n\n#グループ役割診断 #${shortName} #当たってる`;
+  const siteUrl = 'https://jackpotsann.github.io/group-role-diagnosis1/';
+  const text = `グループ役割診断をやってみた！\n\n私は【${resultType.name}】でした🎯\n\n「${resultType.quote.replace(/「|」/g, '')}」\n\n相性がいい役割：【${resultType.compat}】\n\nあなたも診断してみて👇\n${siteUrl}\n\n#グループ役割診断 #${shortName} #当たってる`;
   const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
   window.open(url, '_blank', 'width=600,height=450');
 }
 
 function copyResult() {
   if (!resultType) return;
-  const text = `【グループ役割診断】\n私の役割：【${resultType.name}】\n\n${resultType.feature}\n\nよく言うセリフ：${resultType.quote}\n相性のいい役割：【${resultType.compat}】\n\n#グループ役割診断 #当たってる`;
+  const siteUrl = 'https://jackpotsann.github.io/group-role-diagnosis1/';
+  const text = `【グループ役割診断】\n私の役割：【${resultType.name}】\n\n${resultType.feature}\n\nよく言うセリフ：${resultType.quote}\n相性のいい役割：【${resultType.compat}】\n\nあなたも診断してみて👇\n${siteUrl}\n\n#グループ役割診断 #当たってる`;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('copy-btn');
     const orig = btn.textContent;
